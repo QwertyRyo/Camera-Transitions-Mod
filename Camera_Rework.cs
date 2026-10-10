@@ -39,12 +39,19 @@ namespace Camera_Rework {
     internal static Vector3 _unitTransStartPos;
     internal static Quaternion _unitTransStartRot;
     internal static WeaponHud _weaponHud;
+    internal static MelonPreferences_Entry<bool> disable_top_down;
+
     public override void OnInitializeMelon() {
       try {
         HarmonyInstance.PatchAll();
       } catch (System.Exception ex) {
         MelonLogger.Error($"Patching failed: {ex}");
       }
+
+      MelonPreferences_Category cfg = MelonPreferences.CreateCategory("Camera Rework");
+      disable_top_down = cfg.CreateEntry<bool>("Disable Top Down", true);
+      disable_top_down.Comment = "When true, Tab opens the unit menu with a direct smooth camera transition instead of the top-down view";
+      MelonPreferences.Save();
     }
 
     public override void OnSceneWasUnloaded(int buildIndex, string sceneName) {
@@ -305,6 +312,8 @@ namespace Camera_Rework {
   public static class ToggleUnitMenuPatch {
     [HarmonyPrefix]
     static bool Prefix() {
+      if (CameraReworkMod.disable_top_down?.Value == true) return true;
+
       if (CameraReworkMod._transitioning) return false;
       //minimum time bc one tab press causes two toggles
       if (Time.unscaledTime - CameraReworkMod._lastToggleTime < 1.0f) return false;
